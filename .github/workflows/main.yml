@@ -16,11 +16,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3
-    - name: Check Python version and distutils
-      run: |
-          python --version
-          pip install distutils
-          python -c "import distutils.core"
 
     - name: Install dependencies
       run: |
