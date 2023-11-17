@@ -1,26 +1,70 @@
-name: Build and Push Docker Image
+name: Test and Store Artifacts
 
 on:
   push:
     branches:
-      - main
+      - main # adjust the branch name as needed
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  test:
+    runs-on: [self-hosted, Windows]
+    strategy:
+      matrix:
+        python-version: ["3.8"]
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8 # replace 'x' with your desired Python version
 
-      - name: Login to GitHub Packages
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/installing-python-dependencies
+
+      - name: Test with pytest
+        run: |
+          pytest test_app.py --doctest-modules --junitxml=tests/test-results-${{ matrix.python-version }}.xml > tests/log1.txt 
+          pytest test_app.py  > tests/log.txt
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-results-${{ matrix.python-version }}
+          path: tests/
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        run: |
-          docker buildx create --use
-          docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}:latest .
-          docker push ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}:latest
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
