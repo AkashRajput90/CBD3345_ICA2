@@ -3,3 +3,4 @@ matplotlib
 numpy
 io
 unittest
+base64
