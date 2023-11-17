@@ -1,6 +1,5 @@
 Flask
 matplotlib
 numpy
-base64
 io
 unittest
