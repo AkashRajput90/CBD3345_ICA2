@@ -19,6 +19,7 @@ jobs:
     - name: Check Python version and distutils
       run: |
           python --version
+          pip install distutils
           python -c "import distutils.core"
 
     - name: Install dependencies
