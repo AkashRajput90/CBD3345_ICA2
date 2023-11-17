@@ -1,6 +1,4 @@
 Flask
-matplotlib
-numpy
-io
-unittest
-base64
+matplotlib==3.4.3
+werkzeug==2.0.2
+gunicorn==20.1.0
