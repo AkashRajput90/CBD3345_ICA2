@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          python -m pytest tests/  # adjust the path if needed
+          python -m pytest  / # adjust the path if needed
 
       - name: Store Test Reports
         if: always()
