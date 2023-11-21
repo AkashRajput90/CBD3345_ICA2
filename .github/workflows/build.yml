@@ -28,11 +28,11 @@ jobs:
       - name: Build and Push the docker image
         uses: ./.github/actions/build-push-docker
         with:
-          image-name: 'akash/flask-app'
+          image-name: 'akashlambton/flask-app'
           bash-interpreter: 'powershell'
 
       - name: Integration test
-        run: docker run -p 5000:5000 akash/flask-app pytest test_app.py > test-report.txt
+        run: docker run -p 5000:5000 akashlambton/flask-app pytest test_app.py > test-report.txt
 
       - name: Upload Test Reports
         if: always()
