@@ -26,6 +26,10 @@ jobs:
 
       - uses: actions/checkout@v2
       - uses: ./.github/actions/installing-python-dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install Flask matplotlib numpy pytest
+
 
       - name: Test with pytest
         run: |
