@@ -1,16 +1,14 @@
-name: Test, Package, and Deploy
+name: Run Tests and Store Report
 
 on:
   push:
     branches:
-      - main # Adjust the branch name as needed
+      - main
 
 jobs:
-  test:
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        python-version: ["3.8"]
+  Windows-runner:
+    runs-on: [self-hosted, Windows]
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
@@ -20,30 +18,60 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install Python Dependencies
+      - name: Install Dependencies
         run: |
+          pwd
           python -m pip install --upgrade pip
-          pip install Flask matplotlib numpy pytest
+          pip install -r requirements.txt
+          pip install -r test-requirements.txt
 
-
-      - name: Test with pytest
-        run: |
-          pytest test_app.py --doctest-modules --junitxml=tests/test-results-${{ matrix.python-version }}.xml > tests/log1.txt 
-          pytest test_app.py  > tests/log.txt
-
-      - name: Upload pytest test results
-        uses: actions/upload-artifact@v3
+      - name: Build and Push the docker image
+        uses: ./.github/actions/build-push-docker
         with:
-          name: pytest-results-${{ matrix.python-version }}
-          path: tests/
-        if: ${{ always() }}
+          image-name: 'alikhan0/flask-app'
+          bash-interpreter: 'powershell'
 
-  build-and-push-image:
-    runs-on: ubuntu-latest
-    needs: test
-    permissions:
-      contents: read
-      packages: write
+      - name: Integration test
+        run: docker run -p 5000:5000 alikhan0/flask-app pytest test_app.py > test-report.txt
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-reports
+          path: test-report.txt  # Update this path to the directory containing your test reports
+
+  Linux-runner:
+    runs-on: [self-hosted, linux]
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install Dependencies
+        run: |
+          pwd
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r test-requirements.txt
+
+      - name: Build and Push the docker image
+        uses: ./.github/actions/build-push-docker
+        with:
+          image-name: 'alikhan0/flask-app'
+          bash-interpreter: 'bash'
+
+      - name: Integration test
+        run: docker run -p 5000:5000 alikhan0/flask-app pytest test_app.py > test-report.txt
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-reports
+          path: test-report.txt  # Update this path to the directory containing your test reports
