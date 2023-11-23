@@ -42,36 +42,42 @@ jobs:
           path: test-report.txt  # Update this path to the directory containing your test reports
 
   Linux-runner:
-    runs-on: [self-hosted, linux]
+   runs-on: [self-hosted, linux]
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+   steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
 
-      - name: Install Dependencies
-        run: |
-          pwd
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r test_requirements.txt
+    - name: Install Dependencies
+      run: |
+        pwd
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r test_requirements.txt
 
-      - name: Build and Push the docker image
-        uses: ./.github/actions/build-push-docker
-        with:
-          image-name: 'akashlambton/flask-app'
-          bash-interpreter: 'bash'
+    - name: Docker Login
+      run: docker login -u your_docker_username -p your_docker_password
+      env:
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
-      - name: Integration test
-        run: docker run -p 5000:5000 akashlambton/flask-app pytest test_app.py > test-report.txt
+    - name: Build and Push the docker image
+      uses: ./.github/actions/build-push-docker
+      with:
+        image-name: 'akashlambton/flask-app'
+        bash-interpreter: 'bash'
 
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-          name: test-reports
-          path: test-report.txt
+    - name: Integration test
+      run: docker run -p 5000:5000 akashlambton/flask-app pytest test_app.py > test-report.txt
+
+    - name: Upload Test Reports
+      if: always()
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-reports
+        path: test-report.txt
